@@ -168,7 +168,7 @@ impl<'a, 'r> FromRequest<'a, 'r> for UserLogged {
 //----------------------
 
 
-pub fn do_login(db_pass: String, input_pass: String) -> Option<Uuid> {
+pub fn do_login(db_pass: &String, input_pass: &String) -> Option<Uuid> {
     match verify(&input_pass, &db_pass) {
         Ok(true) => {
             let token = Uuid::new_v4();
