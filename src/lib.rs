@@ -1,5 +1,3 @@
-#![feature(plugin)]
-#![plugin(rocket_codegen)]
 
 #[macro_use]
 extern crate diesel;
@@ -17,6 +15,12 @@ extern crate log;
 extern crate bcrypt;
 extern crate chrono;
 
+use diesel::query_builder::{SelectStatement};
+use diesel::expression::bound::Bound;
+use diesel::sql_types::Text;
+
+use diesel::query_dsl::filter_dsl::FilterDsl;
+use std::marker::PhantomData;
 use chrono::offset::Local;
 use chrono::{Duration, DateTime};
 use diesel::prelude::*;
@@ -36,6 +40,8 @@ use rocket::http::Method;
 use rocket::response::Responder;
 use rocket::Response;
 use uuid::Uuid;
+
+use diesel::{QueryDsl, ExpressionMethods};
 
 /*
 use rocket::http::hyper::header::{Authorization, Basic, Bearer, Headers};
@@ -129,13 +135,20 @@ impl<'r> Responder<'r> for ReturnStatus {
 //Login guard
 
 /// Ensures that the user is logged in and that the request includes a X-Authorization: Bearer token
-/// #Test
+/// # Test
 /// curl -H "X-Authorization:  Bearer maboi" raidable.ddns.net:27015/user
+///
+/// # Generic Parameters
+/// R: Resulting User type
+/// UT: User table type
+/// T: Token diesel type
 pub struct UserLogged {
-    pub token: Uuid,
+    pub token: String,
+    //phantom_data: PhantomData<(UT, T)>,
 }
 
-impl<'a, 'r> FromRequest<'a, 'r> for UserLogged {
+//impl<'a, 'r, R: Sized, UT: FilterDsl<SelectStatement<UT, DefaultSelectClause, NoDistinctClause, WhereClause<diesel::expression::operators::Eq<T, Bound<Text, &String>>>>>+Sized, T: ExpressionMethods+Sized> FromRequest<'a, 'r> for UserLogged<R, UT, T> {
+impl<'a, 'r/*, R, UT: Table, T: ExpressionMethods*/> FromRequest<'a, 'r> for UserLogged {
     type Error = ();
 
     fn from_request(request: &'a Request<'r>) -> rocket::request::Outcome<UserLogged, Self::Error> {
@@ -155,8 +168,12 @@ impl<'a, 'r> FromRequest<'a, 'r> for UserLogged {
                                      // user from token db
             //let user = user_from_token(token, db.as_ref().unwrap());
             let user = Uuid::parse_str(token);
+
+            // Get user from token
+            //let user = UT::filter(T::eq(token)).first::<R>(db.as_ref().unwrap());
             if let Ok(u) = user {
-                Outcome::Success(UserLogged { token: u })
+                //Outcome::Success(UserLogged { user: u,  phantom_data: PhantomData})
+                Outcome::Success(UserLogged { token: u.to_string(),})
             } else {
                 Outcome::Failure((Status::Unauthorized, ()))
             }
@@ -165,6 +182,20 @@ impl<'a, 'r> FromRequest<'a, 'r> for UserLogged {
         }
     }
 }
+
+/*
+fn foo<UT, T, R, K>(db: &PgConnection, token: K, table: UT) -> Result<R, diesel::result::Error> where
+    UT: Table + QueryDsl + FilterDsl<Eq<T, K>>,
+    T: Column + ExpressionMethods + Default,
+    K: AsExpression<T::SqlType>,
+    Filter<UT, Eq<T, K>>: QueryDsl +  LimitDsl + RunQueryDsl<PgConnection>,
+    Limit<Filter<UT, Eq<T, K>>>: LoadQuery<PgConnection, R>
+{
+
+    <UT as FilterDsl<_>>::filter(table, T::default().eq(token)).first::<R>(db)
+}
+*/
+
 //----------------------
 
 
