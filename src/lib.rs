@@ -15,6 +15,7 @@ extern crate log;
 extern crate bcrypt;
 extern crate chrono;
 
+use std::net::IpAddr;
 use diesel::query_builder::{SelectStatement};
 use diesel::expression::bound::Bound;
 use diesel::sql_types::Text;
@@ -180,6 +181,18 @@ impl<'a, 'r/*, R, UT: Table, T: ExpressionMethods*/> FromRequest<'a, 'r> for Use
         } else {
             Outcome::Failure((Status::Unauthorized, ()))
         }
+    }
+}
+
+
+
+pub struct UserIp(Option<IpAddr>);
+
+impl<'a, 'r> FromRequest<'a, 'r> for UserIp {
+    type Error = ();
+
+    fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, Self::Error> {
+        Outcome::Success(UserIp(request.client_ip()))
     }
 }
 
