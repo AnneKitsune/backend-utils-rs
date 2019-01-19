@@ -186,7 +186,7 @@ impl<'a, 'r/*, R, UT: Table, T: ExpressionMethods*/> FromRequest<'a, 'r> for Use
 
 
 
-pub struct UserIp(Option<IpAddr>);
+pub struct UserIp(pub Option<IpAddr>);
 
 impl<'a, 'r> FromRequest<'a, 'r> for UserIp {
     type Error = ();
